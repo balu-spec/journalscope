@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JournalScope</title>
+<meta name="description" content="Search, filter, compare and pick academic journals using ABDC, JCR (JIF), Scopus/SCImago quartiles and publisher speed metrics.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="loading" class="loading"><div class="spinner"></div><div>Loading 33,000+ journals…</div><div class="bar"><span id="loadbar"></span></div></div>
+
+<header class="top">
+  <div class="brand">
+    <div class="logo" aria-hidden="true">
+      <svg viewBox="0 0 32 32" width="30" height="30"><rect x="3" y="5" width="7" height="22" rx="2" fill="currentColor" opacity=".55"/><rect x="12.5" y="9" width="7" height="18" rx="2" fill="currentColor" opacity=".8"/><circle cx="25" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M28.5 15.5 31 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+    </div>
+    <div>
+      <div class="brand-name">JournalScope</div>
+      <div class="brand-sub" id="brandSub">ABDC · JCR · Scopus/SCImago · publisher speed</div>
+    </div>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-view="search">Search</button>
+    <button class="tab" data-view="finder">Journal Finder</button>
+    <button class="tab" data-view="shortlist">Shortlist <span class="pill" id="slCount">0</span></button>
+    <button class="tab" data-view="about">About</button>
+  </nav>
+  <button class="icon-btn" id="themeBtn" title="Toggle theme" aria-label="Toggle theme">
+    <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg>
+  </button>
+</header>
+
+<!-- ============ SEARCH ============ -->
+<main id="view-search" class="view active">
+  <section class="hero">
+    <div class="searchbar">
+      <div class="seg" id="modeSeg">
+        <button class="on" data-mode="title">Title / ISSN</button>
+        <button data-mode="keyword">Keywords / topic</button>
+      </div>
+      <div class="search-input">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M10 4a6 6 0 1 0 3.7 10.7l4.8 4.8 1.4-1.4-4.8-4.8A6 6 0 0 0 10 4zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8z"/></svg>
+        <input id="q" type="search" autocomplete="off" placeholder="Type a journal name, abbreviation or ISSN…">
+        <div id="suggest" class="suggest"></div>
+      </div>
+    </div>
+    <div class="quick" id="quick">
+      <button data-q="abdc:A*">ABDC A*</button>
+      <button data-q="abdc:A">ABDC A</button>
+      <button data-q="sq:Q1">Scopus Q1</button>
+      <button data-q="jq:Q1">JCR Q1</button>
+      <button data-q="oa">Open access</button>
+      <button data-q="dia">No APC (diamond OA)</button>
+      <button data-q="fast">First decision ≤ 30 days</button>
+      <button data-q="speed">Has speed data</button>
+    </div>
+  </section>
+
+  <div class="layout">
+    <aside class="filters" id="filters">
+      <div class="f-head"><b>Filters</b><button class="link" id="resetF">Reset all</button></div>
+
+      <details open><summary>Rankings</summary>
+        <div class="f-group"><label>ABDC 2025</label><div class="chips" data-f="abdc"><button>A*</button><button>A</button><button>B</button><button>C</button><button data-v="none">Not listed</button></div></div>
+        <div class="f-group"><label>JCR quartile (JIF)</label><div class="chips" data-f="jq"><button>Q1</button><button>Q2</button><button>Q3</button><button>Q4</button><button data-v="none">Not in JCR</button></div></div>
+        <div class="f-group"><label>Scopus quartile (SJR best)</label><div class="chips" data-f="sq"><button>Q1</button><button>Q2</button><button>Q3</button><button>Q4</button><button data-v="none">Not in Scopus</button></div></div>
+        <div class="f-group" id="customFilterWrap" hidden><label id="customFilterLabel">Custom list</label><div class="chips" data-f="cu" id="customChips"></div></div>
+      </details>
+
+      <details open><summary>Subject</summary>
+        <div class="f-group"><label>Subject area (Scopus)</label><select id="fArea"><option value="">Any area</option></select></div>
+        <div class="f-group"><label>Subject category</label><input id="fCatTxt" list="catList" placeholder="e.g. Marketing, Strategy and Management"><datalist id="catList"></datalist></div>
+        <div class="f-group" id="fAjfWrap" hidden><label>AJG field</label><select id="fAjf"><option value="">Any AJG field</option></select></div>
+        <div class="f-group"><label>ABDC field (FoR)</label><select id="fFor"><option value="">Any field</option></select></div>
+      </details>
+
+      <details open><summary>Publisher</summary>
+        <div class="f-group"><input id="fPubTxt" placeholder="Filter publishers…"><div class="publist" id="pubList"></div></div>
+        <div class="f-group"><label>Publisher name contains</label><input id="fPubRaw" placeholder="e.g. Academy, Society"></div>
+      </details>
+
+      <details open><summary>Metrics</summary>
+        <div class="f-group two"><div><label>Min JIF</label><input id="fJif" type="number" min="0" step="0.1" placeholder="0"></div><div><label>Min SJR</label><input id="fSjr" type="number" min="0" step="0.1" placeholder="0"></div></div>
+        <div class="f-group two"><div><label>Min h-index</label><input id="fH" type="number" min="0" step="1" placeholder="0"></div><div><label>Max 1st decision (days)</label><input id="fFd" type="number" min="0" step="1" placeholder="any"></div></div>
+        <div class="f-group two"><div><label>Max APC (USD)</label><input id="fApc" type="number" min="0" step="100" placeholder="any"></div><div><label>Country</label><select id="fCountry"><option value="">Any</option></select></div></div>
+        <div class="f-group checks">
+          <label class="ck"><input type="checkbox" id="fOa"> Open access journal</label>
+          <label class="ck"><input type="checkbox" id="fDia"> Diamond OA (no APC)</label>
+          <label class="ck"><input type="checkbox" id="fSpeed"> Has publisher speed data</label>
+          <label class="ck"><input type="checkbox" id="fUpgrade"> ABDC upgraded since 2022</label>
+        </div>
+      </details>
+    </aside>
+
+    <section class="results">
+      <div class="r-toolbar">
+        <button class="btn ghost only-mobile" id="toggleFilters">Filters</button>
+        <div class="r-count" id="rCount"></div>
+        <div class="r-actions">
+          <label class="sr" for="sortSel">Sort</label>
+          <select id="sortSel">
+            <option value="rel">Best match</option>
+            <option value="quality">Overall standing</option>
+            <option value="jif">JIF (high→low)</option>
+            <option value="sjr">SJR (high→low)</option>
+            <option value="h">h-index (high→low)</option>
+            <option value="cs">CiteScore (high→low)</option>
+            <option value="fd">Fastest first decision</option>
+            <option value="title">Title A→Z</option>
+          </select>
+          <div class="seg small" id="viewSeg"><button class="on" data-v="cards">Cards</button><button data-v="table">Table</button></div>
+          <button class="btn ghost" id="liveBtn" hidden title="Uses OpenAlex to find journals that recently published papers matching your words">⚡ Add journals publishing on this topic</button>
+          <button class="btn ghost" id="exportBtn" title="Download the filtered list as CSV">Export CSV</button>
+        </div>
+      </div>
+      <div id="activeFilters" class="active-filters"></div>
+      <div id="results"></div>
+      <div class="more-wrap"><button class="btn" id="moreBtn" hidden>Show more</button></div>
+    </section>
+  </div>
+</main>
+
+<!-- ============ FINDER ============ -->
+<main id="view-finder" class="view">
+  <section class="finder">
+    <div class="finder-intro">
+      <h1>Find a journal for your paper</h1>
+      <p>Paste your title, abstract and keywords. JournalScope matches them to subject categories and journal scopes, then sorts candidates into <b>Reach</b>, <b>Target</b> and <b>Safer</b> options for the ranking list you care about.</p>
+    </div>
+    <div class="finder-grid">
+      <div class="card">
+        <div class="step"><span>1</span> Your paper</div>
+        <label for="fTitle">Title</label>
+        <input id="fTitle" placeholder="e.g. Emojis in online product reviews and consumer trust">
+        <label for="fAbs">Abstract (optional, improves matching)</label>
+        <textarea id="fAbs" rows="6" placeholder="Paste your abstract…"></textarea>
+        <label for="fKw">Keywords</label>
+        <input id="fKw" placeholder="e.g. emoji, online reviews, dual-process, consumer judgement">
+        <button class="btn primary" id="matchBtn">Match subject areas</button>
+      </div>
+      <div class="card">
+        <div class="step"><span>2</span> Matched subjects <small>(click to toggle)</small></div>
+        <div id="catMatches" class="chips wrap"><span class="muted">Run step 1 to see matching subject categories.</span></div>
+        <div id="liveNote" class="muted" style="font-size:12px;margin-top:8px"></div>
+        <div class="step mt"><span>3</span> Your preferences</div>
+        <div class="two">
+          <div><label>Ranking list</label>
+            <select id="pScale"><option value="abdc">ABDC</option><option value="sq">Scopus quartile</option><option value="jq">JCR quartile</option></select></div>
+          <div><label>Your target tier</label><select id="pTier"></select></div>
+        </div>
+        <div class="two">
+          <div><label>Max first decision (days)</label><input id="pFd" type="number" placeholder="any"></div>
+          <div><label>Max APC (USD)</label><input id="pApc" type="number" placeholder="any"></div>
+        </div>
+        <div class="checks">
+          <label class="ck"><input type="checkbox" id="pOa"> Open access only</label>
+          <label class="ck"><input type="checkbox" id="pDia"> Free to publish (diamond OA)</label>
+          <label class="ck"><input type="checkbox" id="pListed" checked> Must be indexed in the chosen list</label>
+        </div>
+        <label>Exclude publishers (comma separated)</label>
+        <input id="pExcl" placeholder="e.g. MDPI, Inderscience">
+        <button class="btn primary" id="findBtn">Suggest journals</button>
+      </div>
+    </div>
+    <div id="finderOut"></div>
+    <div class="card tips">
+      <div class="step"><span>✓</span> Before you submit: a quick checklist</div>
+      <ol>
+        <li><b>Scope fit beats rank.</b> Read the aims and scope and skim the five most recent articles (shown in each journal's profile under "Recent articles").</li>
+        <li><b>Cite the conversation.</b> If your reference list has no papers from that journal, it is often a weak fit.</li>
+        <li><b>Check speed and cost.</b> First decision and acceptance times come from publisher pages; APCs only apply if you choose open access in hybrid journals.</li>
+        <li><b>Check legitimacy</b> using <a href="https://thinkchecksubmit.org/" target="_blank" rel="noopener">Think. Check. Submit.</a> and confirm current indexing on Scopus/Web of Science before submitting.</li>
+        <li><b>Plan a ladder.</b> Pick one Reach, two Target and one Safer journal so a desk rejection does not cost you months.</li>
+      </ol>
+    </div>
+  </section>
+</main>
+
+<!-- ============ SHORTLIST ============ -->
+<main id="view-shortlist" class="view">
+  <section class="shortlist">
+    <div class="sl-head">
+      <h1>Shortlist &amp; compare</h1>
+      <div class="r-actions"><button class="btn ghost" id="slExport">Export CSV</button><button class="btn ghost" id="slShare">Copy share link</button><button class="btn ghost danger" id="slClear">Clear</button></div>
+    </div>
+    <p class="muted">Star journals anywhere to add them here. The share link opens this exact shortlist on another device.</p>
+    <div id="slOut"></div>
+  </section>
+</main>
+
+<!-- ============ ABOUT ============ -->
+<main id="view-about" class="view">
+  <section class="about card">
+    <h1>About the data</h1>
+    <div id="aboutStats" class="stats"></div>
+    <h2>Sources</h2>
+    <ul id="aboutSources"></ul>
+    <h2>Add your own ranking list (e.g. AJG/CABS, FT50, UTD24, institutional list)</h2>
+    <p>Import any CSV or Excel file that has an ISSN column and a rating column. It is processed in your browser and saved only on this device; it then appears as a filter, a badge and a "similar journals" scale.</p>
+    <div class="import">
+      <input type="text" id="cuName" placeholder="List name, e.g. AJG 2024">
+      <input type="file" id="cuFile" accept=".csv,.xlsx,.xls">
+      <button class="btn primary" id="cuBtn">Import</button>
+      <button class="btn ghost danger" id="cuDel">Remove imported list</button>
+    </div>
+    <div id="cuMsg" class="muted"></div>
+    <h2>Live lookups</h2>
+    <p>Journal profiles fetch live data from <a href="https://openalex.org" target="_blank" rel="noopener">OpenAlex</a> (free, open scholarly index): article counts, citations, APC list price, DOAJ status, research topics and the latest articles. If OpenAlex asks for a key, paste a free one here.</p>
+    <div class="import"><input id="oaKey" placeholder="OpenAlex API key (optional)"><input id="oaMail" placeholder="Your email for OpenAlex polite pool (optional)"><button class="btn ghost" id="oaSave">Save</button></div>
+    <h2>Notes and caveats</h2>
+    <ul>
+      <li>Rankings and metrics change every year. Always confirm on the official source before making decisions.</li>
+      <li>Publishing timelines (first decision, review, acceptance, publication) are medians/averages published by Elsevier and Springer Nature on their journal pages, collected on <span id="speedDate">27 Oct 2026</span>. Other publishers do not publish them consistently; use the profile links to check.</li>
+      <li>Journals are matched across lists by ISSN / eISSN. A small number of title changes or ISSN errors in source lists may cause mismatches.</li>
+      <li>JCR data © Clarivate; ABDC JQL © Australian Business Deans Council; SJR © SCImago Lab (data from Scopus®, Elsevier). This tool is an independent, non-commercial aid and is not affiliated with any of them.</li>
+    </ul>
+  </section>
+</main>
+
+<!-- ============ DRAWER ============ -->
+<div id="scrim" class="scrim"></div>
+<aside id="drawer" class="drawer" aria-hidden="true"><div id="drawerBody"></div></aside>
+<div id="toast" class="toast"></div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
